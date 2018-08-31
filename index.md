@@ -2,4 +2,4 @@
 
 ## Libraries
 
-- [Control.Concurrent.MVar](./pages/control-concurrent-mvar.md)
+- [Control.Concurrent.MVar](./pages/Control-Concurrent-MVar.md)
