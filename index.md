@@ -3,3 +3,4 @@
 ## Libraries
 
 - [Control.Concurrent.MVar](./pages/Control-Concurrent-MVar.md)
+- [DI](./pages/DI.md)
