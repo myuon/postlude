@@ -1,5 +1,9 @@
 # Postlude
 
+## GHC
+
+- [GHC利用テクニック](./pages/GHC-Advice-on.md)
+
 ## Libraries
 
 - [Control.Concurrent.MVar](./pages/Control-Concurrent-MVar.md)
