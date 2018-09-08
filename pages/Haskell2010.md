@@ -1,5 +1,7 @@
 # Haskell2010 Language Report 日本語訳
 
+翻訳元: [Haskell2010 Language Report](https://www.haskell.org/onlinereport/haskell2010/)
+
 Simon Marlow (editor)
 
 myuon (翻訳)
@@ -101,7 +103,7 @@ myuon (翻訳)
     - `Bounded`のインスタンス導出
     - `Read`と`Show`のインスタンス導出
     - 例
-1. コンパイラプラグマ
+1. [コンパイラプラグマ](Haskell2010-compiler-pragma.md)
     - インライン化
     - 限定化
     - 言語拡張
