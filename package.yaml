@@ -34,6 +34,8 @@ executables:
     - haskell-src-exts
     - text
     - text-icu
+    - directory
+    - filepath
 
 tests:
   ghc-docs-book-test:
