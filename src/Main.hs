@@ -12,25 +12,47 @@ import qualified Data.Text.ICU as Regex
 import qualified Data.Text.Format as Format
 import System.Environment
 
-data Doc = Section T.Text | Note T.Text | Pragma T.Text | Paragraph T.Text deriving (Show)
+data Doc
+  = Section T.Text
+  | Note T.Text
+  | Pragma T.Text
+  | Copyright [T.Text]
+  | Paragraph T.Text
+  deriving Show
 
 parseDoc :: T.Text -> Doc
-parseDoc text = (\(Just x) -> x) $ parseSection <|> parseNote <|> parsePragma <|> Just (Paragraph text) where
-  genParser regex con = do
-    let re = Regex.regex [] regex
-    match <- Regex.find re text
-    fmap con $ Regex.group 1 match
+parseDoc text = (\(Just x) -> x)
+  $ parseTeXSection <|> parseSection
+--  <|> parseCopyright
+  <|> parseNote
+  <|> parsePragma
+  <|> Just (Paragraph text)
 
-  parseSection = genParser "\\*{3}[\\s\\*]+([^\\*]*)[\\s\\*]+\\*{3}" Section
-  parseNote = genParser "Note \\[(.*)\\]" Note
-  parsePragma = genParser "#\\s([\\S]+)\\s#" Pragma
+  where
+    genParser :: T.Text -> (T.Text -> Doc) -> Maybe Doc
+    genParser regex con = do
+      let re = Regex.regex [] regex
+      match <- Regex.find re text
+      fmap con $ Regex.group 1 match
+
+    parseCopyright :: Maybe Doc
+    parseCopyright = do
+      let re = Regex.regex [] "(\\(c\\) (.+)\n)+"
+      match <- Regex.find re text
+      fmap Copyright $ sequence $ map (\n -> Regex.group n match) [1..5]
+
+    parseTeXSection = genParser "\\\\section\\[.+\\]\\{(.+)\\}" Section
+    parseSection = genParser "\\*{3}[\\s\\*]+([^\\*]*)[\\s\\*]+\\*{3}" Section
+    parseNote = genParser "Note \\[(.*)\\]" Note
+    parsePragma = genParser "#\\s(.+)\\s#" Pragma
 
 renderDoc :: Doc -> Maybe T.Text
 renderDoc doc = case doc of
   Section t -> Just $ TL.toStrict $ Format.format "# {}" [t]
   Note t -> Just $ TL.toStrict $ Format.format "### Note: {}" [t]
-  Paragraph t -> Just t
   Pragma t -> Nothing
+  Copyright ts -> Just $ TL.toStrict $ TL.unlines $ map (Format.format "> {}" . (\x -> [x])) ts
+  Paragraph t -> Just t
 
 getBlockComments :: T.Text -> [T.Text]
 getBlockComments text = do
