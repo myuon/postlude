@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Monad
-import Data.Maybe
+import RIO
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Text.ICU as Regex
