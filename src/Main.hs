@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Prelude (print)
 import RIO
 import qualified RIO.FilePath as Path
 import qualified RIO.Text as T
 import qualified RIO.Text.Lazy as TL
 import qualified RIO.Directory as Dir
 import qualified Data.Text.ICU as Regex
-import Data.Text.Format
+import qualified Data.Text.Format as Format
 import System.Environment
 
 getBlockComments :: T.Text -> [T.Text]
@@ -18,26 +19,43 @@ getBlockComments text = do
 isPragma :: T.Text -> Bool
 isPragma t = not (T.null t) && T.take 1 t == "#"
 
-createIndex :: FilePath -> FilePath -> [FilePath] -> IO ()
-createIndex cur base paths = do
-  let path = Path.joinPath [cur, base, "README.md"]
-  Dir.createDirectoryIfMissing True base
-  writeFileUtf8 path $ T.unlines $
-    ("# " `T.append` T.pack base) : "" : map (\path -> TL.toStrict $ format "- [{}]({})" [path, Path.replaceExtension (Path.joinPath [base, path]) ""]) paths
+data FileType = File | Directory deriving (Show)
 
-foldOnDir :: FilePath -> (FilePath -> T.Text -> IO ()) -> (FilePath -> [FilePath] -> IO ()) -> IO ()
+isFile :: FileType -> Bool
+isFile File = True
+isFile _ = False
+
+createIndex :: FilePath -> FilePath -> [(FileType, FilePath)] -> IO ()
+createIndex cur base paths = do
+  Dir.createDirectoryIfMissing True base
+  writeFileUtf8 (Path.joinPath [cur, base, "README.md"]) $ T.unlines
+    $ ("# " `T.append` T.pack base)
+    : ""
+    : map (\(file, filename) -> TL.toStrict $ Format.format "- [{}]({})" [filename, rewritePath file filename]) paths
+
+  where
+    rewritePath file filename = case file of
+      File -> Path.joinPath [base, Path.replaceExtension filename ""]
+      Directory -> Path.joinPath [base, filename] ++ "/"
+
+getFileType :: FilePath -> FilePath -> IO FileType
+getFileType base path = do
+  isFile <- Dir.doesFileExist $ Path.joinPath [base, path]
+  return $ if isFile then File else Directory
+
+foldOnDir :: FilePath -> (FilePath -> T.Text -> IO ()) -> (FilePath -> [(FileType, FilePath)] -> IO ()) -> IO ()
 foldOnDir base onFile onDir = do
-  paths <- Dir.listDirectory base
+  paths <- mapM (\path -> getFileType base path >>= \ft -> return (ft, path)) =<< Dir.listDirectory base
   onDir base paths
 
-  forM_ paths $ \filename -> do
-    let path = Path.joinPath [base, filename]
+  forM_ paths $ \(file, path') -> do
+    let path = Path.joinPath [base, path']
 
-    isFile <- Dir.doesFileExist path
-    if isFile then do
-      when (Path.takeExtension path == ".hs") $ do
-        onFile path =<< readFileUtf8 path
-    else foldOnDir path onFile onDir
+    case file of
+      File -> do
+        when (Path.takeExtension path == ".sh") $ readFileUtf8 path >>= onFile path
+      Directory -> do
+        foldOnDir path onFile onDir
 
 main = runSimpleApp $ liftIO $ do
   (path:_) <- getArgs
