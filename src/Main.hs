@@ -36,7 +36,7 @@ main = do
   let outDir = "docs"
 
   foldOnDir path $ \filename content -> do
-    let path = Path.joinPath [outDir, filename]
+    let path = Path.replaceExtensions (Path.joinPath [outDir, filename]) ".md"
     Dir.createDirectoryIfMissing True (Path.dropFileName path)
 
     TIO.writeFile path $ T.unlines $ filter (\c -> not (T.null c) && not (isPragma c)) $ getBlockComments content
