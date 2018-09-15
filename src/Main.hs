@@ -62,6 +62,11 @@ main = runSimpleApp $ liftIO $ do
   current <- Dir.getCurrentDirectory
 
   let outDir = "docs"
+  writeFileUtf8 (Path.joinPath [outDir, "README.md"]) $ T.unlines
+    [ "# ghc-docs-book"
+    , ""
+    , "- [ghc/compiler](ghc/compiler/)"
+    ]
 
   foldOnDir path
     (\filename content -> do
