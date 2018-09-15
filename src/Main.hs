@@ -22,9 +22,9 @@ data Doc
 
 parseDoc :: T.Text -> Doc
 parseDoc text = (\(Just x) -> x)
-  $ parseTeXSection <|> parseSection
+  $ parseNote
+  <|> parseTeXSection <|> parseSection <|> parseMdSection
 --  <|> parseCopyright
-  <|> parseNote
   <|> parsePragma
   <|> Just (Paragraph text)
 
@@ -43,7 +43,8 @@ parseDoc text = (\(Just x) -> x)
 
     parseTeXSection = genParser "\\\\section\\[.+\\]\\{(.+)\\}" Section
     parseSection = genParser "\\*{3}[\\s\\*]+([^\\*]*)[\\s\\*]+\\*{3}" Section
-    parseNote = genParser "Note \\[(.*)\\]" Note
+    parseMdSection = genParser "(\\s.+)\n~+~{5}" (Section . T.strip)
+    parseNote = genParser "Note \\[(.*)\\](~+~{5})?" Note
     parsePragma = genParser "#\\s(.+)\\s#" Pragma
 
 renderDoc :: Doc -> Maybe T.Text
@@ -122,7 +123,9 @@ main = runSimpleApp $ liftIO $ do
           $ T.intercalate "\n\n"
           $ catMaybes $ map (renderDoc . parseDoc) $ concat
           $ map (T.splitOn "\n\n")
-          $ getBlockComments content)
+          $ getBlockComments
+          $ preprocess
+          $ content)
     (\base paths -> do
         createIndex outDir base paths)
 
@@ -131,4 +134,8 @@ main = runSimpleApp $ liftIO $ do
     , ""
     , "- [ghc/compiler](ghc/compiler/)"
     ]
+
+  where
+    preprocess :: T.Text -> T.Text
+    preprocess = T.replace "~~~~~\n" "~~~~~\n\n"
 
