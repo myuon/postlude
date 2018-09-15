@@ -36,4 +36,5 @@ executables:
     dependencies:
     - rio
     - text-icu
+    - text-format
 

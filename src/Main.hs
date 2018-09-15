@@ -4,8 +4,10 @@ module Main where
 import RIO
 import qualified RIO.FilePath as Path
 import qualified RIO.Text as T
+import qualified RIO.Text.Lazy as TL
 import qualified RIO.Directory as Dir
 import qualified Data.Text.ICU as Regex
+import Data.Text.Format
 import System.Environment
 
 getBlockComments :: T.Text -> [T.Text]
@@ -16,12 +18,12 @@ getBlockComments text = do
 isPragma :: T.Text -> Bool
 isPragma t = not (T.null t) && T.take 1 t == "#"
 
-createIndex :: FilePath -> [FilePath] -> IO ()
-createIndex base paths = do
-  let path = Path.joinPath [base, "README.md"]
+createIndex :: FilePath -> FilePath -> [FilePath] -> IO ()
+createIndex cur base paths = do
+  let path = Path.joinPath [cur, base, "README.md"]
   Dir.createDirectoryIfMissing True base
   writeFileUtf8 path $ T.unlines $
-    ("# " `T.append` T.pack base) : "" : map (("- " `T.append`) . T.pack) paths
+    ("# " `T.append` T.pack base) : "" : map (\path -> TL.toStrict $ format "- [{}]({})" [path, Path.replaceExtension (Path.joinPath [base, path]) ""]) paths
 
 foldOnDir :: FilePath -> (FilePath -> T.Text -> IO ()) -> (FilePath -> [FilePath] -> IO ()) -> IO ()
 foldOnDir base onFile onDir = do
@@ -50,5 +52,5 @@ main = runSimpleApp $ liftIO $ do
 
         writeFileUtf8 path $ T.unlines $ filter (\c -> not (T.null c) && not (isPragma c)) $ getBlockComments content)
     (\base paths -> do
-        createIndex (Path.joinPath [outDir, base]) paths)
+        createIndex outDir base paths)
 
