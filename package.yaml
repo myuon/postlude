@@ -35,7 +35,5 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - rio
-    - text
     - text-icu
-    - directory
-    - filepath
+
