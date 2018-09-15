@@ -49,10 +49,11 @@ isFile _ = False
 createIndex :: FilePath -> FilePath -> [(FileType, FilePath)] -> IO ()
 createIndex cur base paths = do
   Dir.createDirectoryIfMissing True (Path.joinPath [cur, base])
-  writeFileUtf8 (Path.joinPath [cur, base, "README.md"]) $ T.unlines
-    $ ("# " `T.append` T.pack base)
-    : ""
-    : map (\(file, filename) -> TL.toStrict $ Format.format "- [{}]({})" [filename, rewritePath file filename]) paths
+  writeFileUtf8 (Path.joinPath [cur, base, "README.md"]) $ T.unlines $
+    [ ("# " `T.append` T.pack base)
+    , ""
+    ] ++
+    map (\(file, filename) -> TL.toStrict $ Format.format "- [{}]({})" [filename, rewritePath file filename]) paths
 
   where
     rewritePath file filename = case file of
@@ -95,6 +96,7 @@ main = runSimpleApp $ liftIO $ do
         Dir.createDirectoryIfMissing True (Path.dropFileName path)
 
         writeFileUtf8 path
+          $ T.append (TL.toStrict $ Format.format "[[src]](https://github.com/ghc/ghc/tree/master/{})\n" [T.dropPrefix "ghc/" $ T.pack filename])
           $ T.intercalate "\n\n"
           $ catMaybes $ map (renderDoc . parseDoc) $ concat
           $ map (T.splitOn "\n\n")
