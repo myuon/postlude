@@ -38,14 +38,20 @@ createIndex cur base paths = do
       File -> Path.joinPath [base, Path.replaceExtension filename ""]
       Directory -> Path.joinPath [base, filename] ++ "/"
 
-getFileType :: FilePath -> FilePath -> IO FileType
+getFileType :: FilePath -> FilePath -> IO (Maybe FileType)
 getFileType base path = do
   isFile <- Dir.doesFileExist $ Path.joinPath [base, path]
-  return $ if isFile then File else Directory
+  isDirectory <- Dir.doesDirectoryExist $ Path.joinPath [base, path]
+  return $
+    if not isFile && not isDirectory then Nothing
+    else if isFile then Just File else Just Directory
 
 foldOnDir :: FilePath -> (FilePath -> T.Text -> IO ()) -> (FilePath -> [(FileType, FilePath)] -> IO ()) -> IO ()
 foldOnDir base onFile onDir = do
-  paths <- mapM (\path -> getFileType base path >>= \ft -> return (ft, path)) =<< Dir.listDirectory base
+  listDir <- Dir.listDirectory base
+  paths <- fmap catMaybes $ forM listDir $ \path -> do
+    result <- getFileType base path
+    return $ maybe Nothing (\ft -> Just (ft, path)) result
   onDir base paths
 
   forM_ paths $ \(file, path') -> do
